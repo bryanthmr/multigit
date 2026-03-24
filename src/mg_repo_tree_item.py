@@ -142,6 +142,44 @@ class MgRepoTreeItem(QTreeWidgetItem):
         self.fillRepoItem()
 
 
+    def __init__(self, repoInfo: MgRepoInfo, *args: Any) -> None:
+        super().__init__(*args)
+        self.ignoreUpdates = False
+        if self.text(0) == '': 
+            self.setText(1, '')
+            self.setText(0, repoInfo.name)
+            self.setText(COL_HEAD, '...')
+            self.setText(COL_STATUS, '...')
+            self.setText(COL_REMOTE_SYNCHRO, '...')
+
+        f = self.font(COL_SHA1)
+        f.setFixedPitch(True)
+        self.setFont(COL_SHA1, f)
+
+        self.repoInfo = repoInfo
+        self.repoInfo.repo_info_available.connect(self.slotRepoInfoAvailable)
+        self.repoInfo.repo_update_in_progress.connect(self.slotRepoUpdateInProgress)
+        self.repoInfo.repo_deleted.connect(self.slotRepoDeleted)
+
+        self.filledColumns = MgRepoTreeItem.ColumnFlags(0)
+        self.setToolTips()
+
+
+    def setToolTips(self) -> None:
+        self.setToolTip(0, self.repoInfo.name) 
+        self.setToolTip(COL_STATUS, MSG_TOOLTIP_STATUS)
+        self.setToolTip(COL_REMOTE_SYNCHRO, MSG_TOOLTIP_REMOTE_SYNCHRO)
+
+
+    @ignoreCppObjectDeletedError
+    def markItemInProgress(self) -> None:
+        dbg('markItemInProgress(%s)' % self.repoInfo.name)
+        self.setText(1, '') 
+        self.setIcon(1, QIcon(':img/icons8-loader-96.png'))
+        self.setToolTip(1, MSG_TOOLTIP_UPDATE)
+        QApplication.processEvents()
+
+
     @ignoreCppObjectDeletedError
     def fillRepoItem(self) -> None:
         repoInfo = self.repoInfo
